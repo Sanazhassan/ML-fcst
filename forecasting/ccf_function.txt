@@ -1,0 +1,63 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Feb 21 16:01:47 2020
+
+@author: jinji1
+"""
+
+import pandas as pd
+import numpy as np
+from statsmodels.tsa.stattools import ccf
+
+#Please change the file name and path before running the code!!!
+source_table = pd.read_excel(r'C:\Users\jinji1\Desktop\Parker\DNE.xlsx')
+combination_list = pd.read_excel(r'C:\Users\jinji1\Desktop\Parker\CCF_Combination_List.xlsx')
+table_name = source_table[['Date','Geography','Group','Value']]
+df_xreg = source_table
+
+#table_name load the data for sales or DNE
+#df_xreg load the data for all external variables/ drivers
+#combination_list is the list having each group_region_external variable combination
+
+def ccf_function(table_name,df_xreg,combination_list): # pass sales or DNE table name, external variable and combination list table name
+  ccf_value_list= []
+  lag_list = []
+  Geography_name = []
+  Xreg_name = []
+  Group_name = []
+  ccf_result =pd.DataFrame()
+  ccf_value = []
+  for index, row in combination_list.iterrows():
+        print(row['Group'], row['Xreg'],row['Geo'])
+        group_name=row['Group']
+        xreg_name=row['Xreg']
+        geo_name=row['Geo']
+        df_xreg_geo=df_xreg[(df_xreg.Geography==geo_name)]
+        df_xreg_list = df_xreg_geo[xreg_name]
+        table_name_group = table_name[(table_name.Group==group_name) & (table_name.Geography==geo_name)]
+        table_name_group_value = table_name_group ["Value"]
+        ccf_value = ccf(np.array(table_name_group_value),np.array(df_xreg_list),unbiased=False)
+        ccf_value_order = list(abs(ccf_value[0:13]))
+        ccf_lag = ccf_value_order.index(max(ccf_value_order))
+        ccf_max = max(ccf_value_order)
+        ccf_value_list.append(ccf_max)
+        lag_list.append(ccf_lag)
+        Geography_name.append(geo_name)
+        Xreg_name.append(xreg_name)
+        Group_name.append(group_name)
+  ccf_result = pd.DataFrame(
+                        {'Group': Group_name,
+                         'Xreg': Xreg_name,
+                         'Geo': Geography_name,
+                         'CCF': ccf_value_list,
+                         'Lag':lag_list
+                        })
+  return ccf_result
+
+ccf_result_output=ccf_function(table_name,df_xreg,combination_list)
+
+#Please change the output file path before run!
+export_excel = ccf_result_output.to_excel (r'C:\Users\jinji1\Desktop\Parker\CCF.xlsx', index = None, header=True)
+
+
+        
